@@ -99,13 +99,16 @@ def iter_archive_contents(archive):
         raise RuntimeError("Unsupported archive format")
 
 
-def write_ziglang_wheel(out_dir, *, version, platform, archive):
+def write_ziglang_wheel(out_dir, *, version, platform, archive, skip_path_prefixes=tuple()):
     contents = {}
     contents['ziglang/__init__.py'] = b''
 
     for entry_name, entry_mode, entry_data in iter_archive_contents(archive):
         entry_name = '/'.join(entry_name.split('/')[1:])
         if not entry_name:
+            continue
+
+        if skip_path_prefixes and any(entry_name.startswith(prefix) for prefix in skip_path_prefixes):
             continue
 
         zip_info = ZipInfo(f'ziglang/{entry_name}')
@@ -154,7 +157,7 @@ def fetch_zig_version_info():
 
 
 def fetch_and_write_ziglang_wheels(
-    outdir='dist/', zig_version='master', wheel_version_suffix='', platforms=tuple()
+    outdir='dist/', zig_version='master', wheel_version_suffix='', platforms=tuple(), skip_path_prefixes=tuple(),
 ):
     Path(outdir).mkdir(exist_ok=True)
     if not platforms:
@@ -194,7 +197,9 @@ def fetch_and_write_ziglang_wheels(
         wheel_path = write_ziglang_wheel(outdir,
             version=wheel_version + wheel_version_suffix,
             platform=python_platform,
-            archive=zig_archive)
+            archive=zig_archive,
+            skip_path_prefixes=skip_path_prefixes,
+        )
         with open(wheel_path, 'rb') as wheel:
             print(f'  {hashlib.sha256(wheel.read()).hexdigest()} {wheel_path}')
 
@@ -206,12 +211,16 @@ def get_argparser():
     parser.add_argument('--outdir', default='dist/', help="target directory")
     parser.add_argument('--platform', action='append', choices=list(ZIG_PYTHON_PLATFORMS.keys()), default=[],
                         help="platform to build for, can be repeated")
+    parser.add_argument("--include-docs", choices=[0, 1], type=int, default=1, help="include documentation")
     return parser
 
 def main():
     args = get_argparser().parse_args()
     fetch_and_write_ziglang_wheels(outdir=args.outdir, zig_version=args.version,
-                                   wheel_version_suffix=args.suffix, platforms=args.platform)
+                                   wheel_version_suffix=args.suffix, platforms=args.platform,
+                                   skip_path_prefixes=tuple()
+                                   if args.include_docs else ('doc/', 'lib/docs/'))
+
 
 if __name__ == '__main__':
     main()

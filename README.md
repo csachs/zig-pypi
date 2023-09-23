@@ -30,7 +30,8 @@ Run the repackaging script:
 ```shell
 $ pdm run make_wheels.py --help
 usage: make_wheels.py [-h] [--version VERSION] [--suffix SUFFIX] [--outdir OUTDIR]
-                                                  [--platform {x86_64-windows,x86_64-macos,aarch64-macos,i386-linux,x86-linux,x86_64-linux,aarch64-linux,armv7a-linux}]
+                      [--platform {x86_64-windows,x86_64-macos,aarch64-macos,i386-linux,x86-linux,x86_64-linux,aarch64-linux,armv7a-linux}]
+                      [--include-docs {0,1}]
 
 Repackage official Zig downloads as Python wheels
 
@@ -41,6 +42,7 @@ options:
   --outdir OUTDIR       target directory
   --platform {x86_64-windows,x86_64-macos,aarch64-macos,i386-linux,x86-linux,x86_64-linux,aarch64-linux,armv7a-linux}
                         platform to build for, can be repeated
+  --include-docs {0,1}  include documentation
 ```
 
 This command will download the Zig release archives for every supported platform and convert them to binary wheels, which are placed under `dist/`. The Zig version and platforms can be passed as arguments.
