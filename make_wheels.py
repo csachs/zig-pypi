@@ -10,6 +10,8 @@ from email.message import EmailMessage
 from wheel.wheelfile import WheelFile
 from zipfile import ZipFile, ZipInfo, ZIP_DEFLATED
 
+os.environ["SOURCE_DATE_EPOCH"] = "315532800"
+
 ZIG_VERSION_INFO_URL = 'https://ziglang.org/download/index.json'
 ZIG_PYTHON_PLATFORMS = {
     'x86_64-windows': 'win_amd64',
@@ -24,23 +26,6 @@ ZIG_PYTHON_PLATFORMS = {
     # no longer present?
     'armv7a-linux':   'manylinux_2_17_armv7l.manylinux2014_armv7l.musllinux_1_1_armv7l',
 }
-
-class ReproducibleWheelFile(WheelFile):
-    def writestr(self, zinfo_or_arcname, data, *args, **kwargs):
-        if isinstance(zinfo_or_arcname, ZipInfo):
-            zinfo = zinfo_or_arcname
-        else:
-            assert isinstance(zinfo_or_arcname, str)
-            zinfo = ZipInfo(zinfo_or_arcname)
-            zinfo.file_size = len(data)
-            zinfo.external_attr = 0o0644 << 16
-            if zinfo_or_arcname.endswith(".dist-info/RECORD"):
-                zinfo.external_attr = 0o0664 << 16
-
-        zinfo.compress_type = ZIP_DEFLATED
-        zinfo.date_time = (1980,1,1,0,0,0)
-        zinfo.create_system = 3
-        super().writestr(zinfo, data, *args, **kwargs)
 
 
 def make_message(headers, payload=None):
@@ -57,7 +42,7 @@ def make_message(headers, payload=None):
 
 
 def write_wheel_file(filename, contents):
-    with ReproducibleWheelFile(filename, 'w') as wheel:
+    with WheelFile(filename, 'w') as wheel:
         for member_info, member_source in contents.items():
             wheel.writestr(member_info, bytes(member_source))
     return filename
@@ -110,6 +95,7 @@ def write_ziglang_wheel(out_dir, *, version, platform, archive):
 
         zip_info = ZipInfo(f'ziglang/{entry_name}')
         zip_info.external_attr = (entry_mode & 0xFFFF) << 16
+        zip_info.compress_type = ZIP_DEFLATED
         contents[zip_info] = entry_data
 
         if entry_name.startswith('zig'):
